@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGradientGenerator } from '@/hooks/useGradientGenerator';
 import { colorPresets } from '@/lib/constants';
 import { colorToParam } from '@/lib/utils';
-import { Download, RefreshCw, Plus, Trash2, Palette, Sparkles, Layers, Code, Zap } from 'lucide-react';
+import { Download, RefreshCw, Plus, Trash2, Palette, Sparkles, Layers, Code, Zap, MousePointer2, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ColorWheel, type SelectionMode } from '@/components/ColorWheel';
+import { type HarmonyType, generateColorGradient } from '@/lib/colorHarmony';
 
 export default function GradientGenerator() {
   const {
@@ -26,11 +28,30 @@ export default function GradientGenerator() {
   const [newColor, setNewColor] = useState('');
   const [apiLinkCopied, setApiLinkCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // 色轮相关状态
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>('free');
+  const [color1, setColor1] = useState(colors[0] || '#5135FF');
+  const [color2, setColor2] = useState(colors[1] || '#FF5828');
+  const [harmonyType, setHarmonyType] = useState<HarmonyType>('complementary');
 
   useEffect(() => {
     setMounted(true);
-    generateGradient();
-  }, [generateGradient]);
+  }, []);
+
+  // 当 colors 变化时，触发渐变生成
+  useEffect(() => {
+    if (mounted) {
+      generateGradient();
+    }
+  }, [colors, mounted]);
+
+  // 当色轮颜色变化时，更新渐变颜色
+  useEffect(() => {
+    // 生成两种颜色之间的渐变色
+    const gradientColors = generateColorGradient(color1, color2, 4);
+    setColors(gradientColors);
+  }, [color1, color2]);
 
   const handleColorChange = (index: number, color: string) => {
     const newColors = [...colors];
@@ -54,6 +75,11 @@ export default function GradientGenerator() {
 
   const applyPreset = (preset: typeof colorPresets[0]) => {
     setColors(preset.colors);
+    // 同步更新色轮颜色
+    if (preset.colors.length >= 2) {
+      setColor1(preset.colors[0]);
+      setColor2(preset.colors[1]);
+    }
   };
 
   const generateApiLink = () => {
@@ -175,6 +201,65 @@ export default function GradientGenerator() {
           {/* Right Column: Controls */}
           <div className="lg:col-span-5 space-y-8">
             
+            {/* Color Wheel Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-semibold text-lg">Color Wheel</h2>
+                </div>
+              </div>
+
+              {/* 模式切换 */}
+              <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                <button
+                  onClick={() => setSelectionMode('free')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                    selectionMode === 'free' 
+                      ? "bg-card text-foreground shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <MousePointer2 className="w-4 h-4" />
+                  自由选择
+                </button>
+                <button
+                  onClick={() => setSelectionMode('recommend')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all",
+                    selectionMode === 'recommend' 
+                      ? "bg-card text-foreground shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Wand2 className="w-4 h-4" />
+                  推荐选择
+                </button>
+              </div>
+
+              {/* 色轮组件 */}
+              <ColorWheel
+                color1={color1}
+                color2={color2}
+                onColor1Change={setColor1}
+                onColor2Change={setColor2}
+                mode={selectionMode}
+                harmonyType={harmonyType}
+                onHarmonyTypeChange={setHarmonyType}
+                className="py-4"
+              />
+
+              {/* 模式说明 */}
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                {selectionMode === 'free' ? (
+                  <p>在色轮上拖动两个颜色选择器来自由搭配颜色。选择器 1 和 2 将用于生成渐变。</p>
+                ) : (
+                  <p>选择基色后，系统会根据色彩和谐理论自动推荐最佳配色方案。支持互补色、类似色、三角色等多种和谐规则。</p>
+                )}
+              </div>
+            </div>
+
             {/* Dimensions */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -209,19 +294,19 @@ export default function GradientGenerator() {
               </div>
             </div>
 
-            {/* Colors */}
+            {/* Current Colors */}
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
                   <Palette className="w-5 h-5 text-primary" />
-                  <h2 className="font-display font-semibold text-lg">Colors</h2>
+                  <h2 className="font-display font-semibold text-lg">Current Colors</h2>
                 </div>
                 <span className="text-xs font-mono bg-muted px-2 py-1 rounded-md text-muted-foreground">
                   {colors.length}/8
                 </span>
               </div>
               
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                 {colors.map((color, index) => (
                   <div key={index} className="flex items-center gap-3 group">
                     <div className="relative flex-shrink-0">
@@ -229,7 +314,7 @@ export default function GradientGenerator() {
                         type="color"
                         value={color}
                         onChange={(e) => handleColorChange(index, e.target.value)}
-                        className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 hover:border-primary transition-colors"
+                        className="w-10 h-10 p-1 rounded-lg cursor-pointer border-2 hover:border-primary transition-colors"
                       />
                     </div>
                     <Input
@@ -258,7 +343,7 @@ export default function GradientGenerator() {
                         type="color"
                         value={newColor || '#000000'}
                         onChange={(e) => setNewColor(e.target.value)}
-                         className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-dashed border-muted-foreground/30 hover:border-primary transition-colors"
+                         className="w-10 h-10 p-1 rounded-lg cursor-pointer border-2 border-dashed border-muted-foreground/30 hover:border-primary transition-colors"
                       />
                    </div>
                    <Input
