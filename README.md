@@ -5,6 +5,9 @@ A powerful Next.js application for creating stunning SVG gradient backgrounds wi
 ## Features
 
 - **Real-time Preview**: See your gradient backgrounds update instantly as you modify colors
+- **Color Wheel Selection**: Intuitive color wheel interface for selecting and visualizing colors
+- **Dual Mode Selection**: Choose between free mode (full control) and recommended mode (AI-powered color combinations)
+- **Advanced Color Theory**: Built-in algorithms for complementary, analogous, triadic, and other color schemes
 - **Custom Color Palettes**: Add up to 8 colors to create unique gradients
 - **Preset Templates**: Choose from professionally designed color combinations
 - **API Integration**: Generate gradients programmatically via REST API

@@ -1,6 +1,14 @@
-import { useState, useCallback } from 'react';
-import { generateRandomSVG } from '@/lib/services/gradientGenerator';
+import { useState, useCallback, useRef } from 'react';
 import { colorToParam } from '@/lib/utils';
+
+// 防抖函数
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
 
 export function useGradientGenerator() {
   const [colors, setColors] = useState<string[]>(['#5135FF', '#FF5828', '#F69CFF', '#FFA50F']);
@@ -8,8 +16,10 @@ export function useGradientGenerator() {
   const [height, setHeight] = useState(400);
   const [svgContent, setSvgContent] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const generateGradientRef = useRef<Function>();
 
-  const generateGradient = useCallback(async () => {
+  // 原始的generateGradient函数
+  const originalGenerateGradient = useCallback(async () => {
     setIsGenerating(true);
     try {
       const params = new URLSearchParams();
@@ -25,6 +35,14 @@ export function useGradientGenerator() {
       setIsGenerating(false);
     }
   }, [colors, width, height]);
+
+  // 防抖处理的generateGradient函数
+  const generateGradient = useCallback(() => {
+    if (!generateGradientRef.current) {
+      generateGradientRef.current = debounce(originalGenerateGradient, 300);
+    }
+    generateGradientRef.current();
+  }, [originalGenerateGradient]);
 
   const downloadGradient = useCallback(() => {
     if (!svgContent) return;
